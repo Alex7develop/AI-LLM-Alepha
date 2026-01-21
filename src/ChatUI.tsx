@@ -115,9 +115,11 @@ const SendBtn = styled.button`
 
 // Пока это просто мокап сообщений
 const mockMessages = [
-  {user: false, text: 'Здравствуйте! Чем я могу помочь?'},
+  {user: false, text: 'Здравствуйте! Чем я могу помочь Дмитрий Дударев?'},
   {user: true, text: 'Какие свойства у товара с id ... ?'},
   {user: false, text: 'Вот информация о товаре ...'},
+  {user: true, text: 'Багодарю!'},
+  {user: false, text: 'Как подключиться к удаленному столу?'},
 ];
 
 export const ChatUI: React.FC = () => {
