@@ -3,12 +3,12 @@ import styled from 'styled-components';
 
 const SidebarWrapper = styled.aside`
   width: 260px;
-  background: #192044;
+  background: #26358C;
   color: #FFF;
   height: 100vh;
   display: flex;
   flex-direction: column;
-  border-top-right-radius: 24px;
+  // border-top-right-radius: 24px;
   border-bottom-right-radius: 24px;
   box-shadow: 1.5px 0 9px rgba(20,52,136,0.03);
   padding: 18px 0 0;
@@ -20,7 +20,7 @@ const SidebarWrapper = styled.aside`
   }
 `;
 
-import logo from './assets/big_logo.png';
+import logo from './assets/icon - edid this.png';
 
 const LogoBlock = styled.div`
   display: flex;
@@ -37,16 +37,23 @@ const NewChatBtn = styled.button`
   margin: 0 20px 15px 25px;
   padding: 9px 0px;
   width: 85%;
-  border-radius: 13px;
+  border-radius: 5px;
   border: none;
-  background: #2862e6;
-  color: #fff;
-  font-weight: 500;
-  font-size: 17px;
+  background: #fff;
+  color: #26358c;
+  font-weight: 700;
+  font-size: 20px;
   cursor: pointer;
-  transition: background .15s;
-  &:hover { background: #2e429b; }
+  transition: background .13s, color .13s;
+  box-shadow: 0 1.5px 6px rgba(38,53,140,0.10);
+  letter-spacing: 0.01em;
+  border: 2px solid #26358c;
+  &:hover {
+    background: #26358c;
+    color: #fff;
+  }
 `;
+
 
 const ChatList = styled.ul`
   list-style: none;
@@ -65,7 +72,7 @@ const ChatListItem = styled.li`
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  &:hover { background: #213083; }
+  &:hover { background: #384cb9; }
 `;
 
 // Для примера — моковые чаты

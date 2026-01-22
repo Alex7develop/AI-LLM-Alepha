@@ -2,14 +2,11 @@ import React from 'react';
 import styled from 'styled-components';
 import { AuthIcon } from './AuthIcon';
 import { AttachFileButton } from './AttachFileButton';
-import logo from './assets/big_logo.png';
-
-const BG_COLOR = '#143488';
 
 const Wrapper = styled.div`
   min-height: 100vh;
   width: 100vw;
-  background: ${BG_COLOR};
+  background: #26358C;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -17,21 +14,14 @@ const Wrapper = styled.div`
 
 const ChatContainer = styled.div`
   width: 100%;
-  max-width: 430px;
+  height: 100%;
   background: #fff;
-  box-shadow: 0 8px 40px rgba(20,52,136,0.11);
-  border-radius: 22px;
-  padding: 0 0 96px 0;
-  min-height: 580px;
   display: flex;
   flex-direction: column;
   position: relative;
   min-width: 0;
-  @media (max-width: 600px) {
-    max-width: 100vw;
-    min-height: 100vh;
-    border-radius: 0;
-  }
+  box-sizing: border-box;
+  padding: 0 0 96px 0;
 `;
 
 const ChatHeader = styled.div`
@@ -43,12 +33,6 @@ const ChatHeader = styled.div`
   border-bottom: 1px solid #e3eefd;
 `;
 
-const Logo = styled.img`
-  height: 37px;
-  @media (max-width: 600px) {
-    height: 29px;
-  }
-`;
 const ChatBody = styled.div`
   flex: 1;
   overflow-y: auto;
@@ -92,15 +76,21 @@ const InputBar = styled.form`
 const Input = styled.input`
   flex: 1;
   background: #fff;
-  padding: 10px 16px;
+  padding: 16px 22px;
   font-size: 17px;
   border: 1.5px solid #e3eefd;
   border-radius: 10px;
   outline: none;
   font-family: inherit;
+  min-width: 180px;
+  min-height: 54px;
+  @media (max-width: 600px) {
+    padding: 14px 12px;
+    min-height: 44px;
+  }
 `;
 const SendBtn = styled.button`
-  background: ${BG_COLOR};
+  background: #26358C;
   color: #fff;
   padding: 0 18px;
   font-size: 15px;
@@ -127,7 +117,7 @@ export const ChatUI: React.FC = () => {
     <Wrapper>
       <ChatContainer>
         <ChatHeader>
-          <Logo src={logo} alt="Alephtrade" />
+          <div style={{flex:1}} />
           <AuthIcon />
         </ChatHeader>
         <ChatBody>
