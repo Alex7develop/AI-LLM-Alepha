@@ -1,81 +1,126 @@
 import React from 'react';
 import styled from 'styled-components';
+import { FiChevronLeft, FiChevronRight } from 'react-icons/fi';
+import { useLayout } from './LayoutContext';
+import logo from './assets/big_logo.png';
 
-const SidebarWrapper = styled.aside`
-  width: 260px;
-  background: #26358C;
-  color: #FFF;
+const SidebarWrapper = styled.aside<{ $open: boolean }>`
+  position: relative;
+  width: ${(p) => (p.$open ? '240px' : '40px')};
+  min-width: ${(p) => (p.$open ? '240px' : '40px')};
+  background: #0f172a;
+  color: #e2e8f0;
   height: 100vh;
   display: flex;
   flex-direction: column;
-  // border-top-right-radius: 24px;
-  border-bottom-right-radius: 24px;
-  box-shadow: 1.5px 0 9px rgba(20,52,136,0.03);
-  padding: 18px 0 0;
-  @media (max-width: 900px) {
-    width: 100px;
-    min-width: 60px;
-    padding: 10px 0 0;
-    border-radius: 0;
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+  padding: 0;
+  transition: width 0.2s ease, min-width 0.2s ease;
+  flex-shrink: 0;
+  @media (max-width: 768px) {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    z-index: 100;
+    width: ${(p) => (p.$open ? '260px' : '0')};
+    min-width: 0;
+    overflow: hidden;
+    box-shadow: ${(p) => (p.$open ? '4px 0 12px rgba(0,0,0,0.15)' : 'none')};
   }
 `;
 
-import logo from './assets/icon - edid this.png';
+const ToggleTab = styled.button`
+  position: absolute;
+  top: 50%;
+  right: -14px;
+  transform: translateY(-50%);
+  width: 26px;
+  height: 68px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #020617;
+  border-radius: 34px;
+  border: 1px solid rgba(15, 23, 42, 0.7);
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.65);
+  color: #e5e7eb;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, box-shadow 0.15s, right 0.15s;
+  &:hover {
+    background: #020617;
+    color: #ffffff;
+    box-shadow: 0 8px 22px rgba(15, 23, 42, 0.9);
+  }
+  @media (max-width: 768px) {
+    right: -10px;
+    height: 56px;
+    width: 24px;
+  }
+`;
 
 const LogoBlock = styled.div`
   display: flex;
   align-items: center;
-  gap: 13px;
-  padding: 0 20px 21px 25px;
+  justify-content: center;
+  padding: 14px 12px 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(0, 0, 0, 0.2);
 `;
 
 const LogoImage = styled.img`
-  height: 39px;
+  height: 32px;
+  width: auto;
+  object-fit: contain;
+  filter: brightness(1.05) contrast(1.05);
 `;
 
 const NewChatBtn = styled.button`
-  margin: 0 20px 15px 25px;
-  padding: 9px 0px;
-  width: 85%;
-  border-radius: 5px;
-  border: none;
-  background: #fff;
-  color: #26358c;
-  font-weight: 700;
-  font-size: 20px;
+  margin: 10px 8px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: transparent;
+  color: #e2e8f0;
+  font-weight: 500;
+  font-size: 13px;
   cursor: pointer;
-  transition: background .13s, color .13s;
-  box-shadow: 0 1.5px 6px rgba(38,53,140,0.10);
-  letter-spacing: 0.01em;
-  border: 2px solid #26358c;
+  transition: background 0.15s, border-color 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   &:hover {
-    background: #26358c;
-    color: #fff;
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.18);
   }
 `;
 
-
 const ChatList = styled.ul`
   list-style: none;
-  padding: 0 0 0 0;
-  margin: 0 0 0 0;
+  padding: 6px 0;
+  margin: 0;
   flex: 1;
   overflow-y: auto;
 `;
 const ChatListItem = styled.li`
-  padding: 11px 26px;
-  font-size: 15px;
-  border-radius: 7px;
+  padding: 8px 12px;
+  margin: 0 6px;
+  font-size: 13px;
+  border-radius: 8px;
   cursor: pointer;
-  margin-bottom: 6px;
-  transition: background .11s;
+  transition: background 0.12s;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  &:hover { background: #384cb9; }
+  color: #94a3b8;
+  &:hover {
+    background: rgba(255, 255, 255, 0.06);
+    color: #e2e8f0;
+  }
 `;
 
-// Для примера — моковые чаты
 const dummyChats = [
   'Тестовая сессия',
   'Обсуждение заказов',
@@ -84,17 +129,31 @@ const dummyChats = [
   'Вопрос по API',
 ];
 
-export const Sidebar: React.FC = () => (
-  <SidebarWrapper>
-    <LogoBlock>
-      <LogoImage src={logo} alt="logo" />
-    </LogoBlock>
-    <NewChatBtn>+ Новый чат</NewChatBtn>
-    <ChatList>
-      {dummyChats.map((title, i) => (
-        <ChatListItem key={i}>{title}</ChatListItem>
-      ))}
-    </ChatList>
-  </SidebarWrapper>
-);
+export const Sidebar: React.FC = () => {
+  const { sidebarOpen, toggleSidebar } = useLayout();
+
+  return (
+    <SidebarWrapper $open={sidebarOpen}>
+      {sidebarOpen && (
+        <>
+          <LogoBlock>
+            <LogoImage src={logo} alt="Алеф Трейд" />
+          </LogoBlock>
+          <NewChatBtn>+ Новый чат</NewChatBtn>
+          <ChatList>
+            {dummyChats.map((title, i) => (
+              <ChatListItem key={i}>{title}</ChatListItem>
+            ))}
+          </ChatList>
+        </>
+      )}
+      <ToggleTab
+        onClick={toggleSidebar}
+        title={sidebarOpen ? 'Скрыть панель' : 'Показать историю чатов'}
+      >
+        {sidebarOpen ? <FiChevronLeft size={18} /> : <FiChevronRight size={18} />}
+      </ToggleTab>
+    </SidebarWrapper>
+  );
+};
 
