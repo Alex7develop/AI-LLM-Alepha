@@ -34,19 +34,20 @@ export async function fetchChats(userId: string = DEFAULT_CHAT_ID): Promise<Chat
   const res = await fetch(`${API_BASE}/ai/chats/${userId}`, {
     method: 'GET',
     headers: getAuthHeaders(),
-    credentials: 'include',
   });
   if (!res.ok) {
     throw new Error(`Ошибка загрузки чатов: ${res.status}`);
   }
-  const raw = (await res.json()) as { chats?: Array<{ dialog_id: string; dialog_type: string; created_at: string; create_source: string }> };
+  const raw = (await res.json()) as {
+    chats?: Array<{ dialog_id: string; dialog_type: string; created_at: string; create_source: string; topic?: string | null }>;
+  };
   const data = raw?.chats ?? [];
   if (!Array.isArray(data)) {
     return [];
   }
   return data.map((item, index) => ({
     id: item.dialog_id,
-    title: formatChatTitle(item.created_at, item.create_source, index),
+    title: item.topic?.trim() || formatChatTitle(item.created_at, item.create_source, index),
     created_at: item.created_at,
     updated_at: item.created_at,
     create_source: item.create_source,
@@ -75,6 +76,51 @@ function formatChatTitle(createdAt: string | undefined, createSource: string | u
     return `${dateStr} · ${createSource}`;
   }
   return dateStr;
+}
+
+/**
+ * История переписки в диалоге.
+ * GET https://api.alephtrade.com/ai/chat/{dialog_id}/history
+ * Ответ: { "history": [ { role, content? | text? | message? }, ... ] }
+ */
+export interface HistoryMessage {
+  id: string;
+  user: boolean;
+  text: string;
+}
+
+export async function fetchChatHistory(dialogId: string): Promise<HistoryMessage[]> {
+  const res = await fetch(`${API_BASE}/ai/chat/${dialogId}/history`, {
+    method: 'GET',
+    headers: getAuthHeaders(),
+  });
+  if (!res.ok) {
+    throw new Error(`Ошибка загрузки истории: ${res.status}`);
+  }
+  const raw = (await res.json()) as {
+    history?: Array<{
+      id?: string;
+      role?: string;
+      output_text?: string;
+      content?: string;
+      text?: string;
+      message?: string;
+    }>;
+  };
+  const data = raw?.history ?? [];
+  if (!Array.isArray(data)) {
+    return [];
+  }
+  return data.map((item, i) => {
+    const role = String(item.role ?? '').toLowerCase();
+    const text = String(item.output_text ?? item.content ?? item.text ?? item.message ?? '');
+    const isUser = role === 'user' || role === 'human';
+    return {
+      id: String(item.id ?? `h-${dialogId}-${i}`),
+      user: isUser,
+      text,
+    };
+  });
 }
 
 /** Создать новый чат. Возвращает id созданного чата. */

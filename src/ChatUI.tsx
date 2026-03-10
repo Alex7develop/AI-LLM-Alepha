@@ -5,7 +5,7 @@ import { AuthIcon } from './AuthIcon';
 import { AttachFileButton } from './AttachFileButton';
 import { useLayout } from './LayoutContext';
 import { useChatContext } from './ChatContext';
-import { streamChatMessage, DEFAULT_CHAT_ID } from './api/client';
+import { streamChatMessage, DEFAULT_CHAT_ID, fetchChatHistory } from './api/client';
 
 const Wrapper = styled.div`
   min-height: 100%;
@@ -157,6 +157,7 @@ export const ChatUI: React.FC = () => {
   const [input, setInput] = useState('');
   const [streaming, setStreaming] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
+  const [historyLoading, setHistoryLoading] = useState(false);
 
   const scrollToBottom = useCallback(() => {
     const el = document.getElementById('chat-body');
@@ -168,8 +169,17 @@ export const ChatUI: React.FC = () => {
   }, [messages, scrollToBottom]);
 
   useEffect(() => {
-    setMessages([]);
     setSendError(null);
+    setMessages([]);
+    if (!currentChatId) return;
+    setHistoryLoading(true);
+    fetchChatHistory(currentChatId)
+      .then((history) => setMessages(history))
+      .catch((err) => {
+        setMessages([]);
+        setSendError(err instanceof Error ? err.message : 'Ошибка загрузки истории');
+      })
+      .finally(() => setHistoryLoading(false));
   }, [currentChatId]);
 
   const handleSubmit = useCallback(
@@ -221,9 +231,14 @@ export const ChatUI: React.FC = () => {
         <AuthIcon />
       </ChatHeader>
       <ChatBody id="chat-body">
-        {messages.length === 0 && !sendError && (
+        {historyLoading && (
           <Bubble user={false} style={{ alignSelf: 'center', color: '#64748b' }}>
-            Напишите сообщение или выберите чат слева.
+            Загрузка истории…
+          </Bubble>
+        )}
+        {!historyLoading && messages.length === 0 && !sendError && (
+          <Bubble user={false} style={{ alignSelf: 'center', color: '#64748b' }}>
+            {currentChatId ? 'Нет сообщений в этом чате.' : 'Напишите сообщение или выберите чат слева.'}
           </Bubble>
         )}
         {sendError && (
