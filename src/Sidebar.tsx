@@ -2,6 +2,8 @@ import React from 'react';
 import styled from 'styled-components';
 import { FiChevronLeft, FiChevronRight } from 'react-icons/fi';
 import { useLayout } from './LayoutContext';
+import { useChatContext } from './ChatContext';
+import { useChats } from './hooks/useChats';
 import logo from './assets/big_logo.png';
 
 const SidebarWrapper = styled.aside<{ $open: boolean }>`
@@ -104,7 +106,7 @@ const ChatList = styled.ul`
   flex: 1;
   overflow-y: auto;
 `;
-const ChatListItem = styled.li`
+const ChatListItem = styled.li<{ $active?: boolean }>`
   padding: 8px 12px;
   margin: 0 6px;
   font-size: 13px;
@@ -114,23 +116,54 @@ const ChatListItem = styled.li`
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  color: #94a3b8;
+  color: ${(p) => (p.$active ? '#e2e8f0' : '#94a3b8')};
+  background: ${(p) => (p.$active ? 'rgba(255, 255, 255, 0.08)' : 'transparent')};
   &:hover {
     background: rgba(255, 255, 255, 0.06);
     color: #e2e8f0;
   }
 `;
 
-const dummyChats = [
-  'Тестовая сессия',
-  'Обсуждение заказов',
-  'Генерация спецификации',
-  'Тест: перевод',
-  'Вопрос по API',
-];
+const ChatListEmpty = styled.div`
+  padding: 12px 16px;
+  font-size: 13px;
+  color: #64748b;
+  text-align: center;
+`;
+
+const ChatListError = styled.div`
+  padding: 12px 16px;
+  font-size: 12px;
+  color: #f87171;
+`;
+const RetryBtn = styled.button`
+  margin-top: 6px;
+  padding: 4px 10px;
+  font-size: 12px;
+  background: rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,0.2);
+  border-radius: 6px;
+  color: #e2e8f0;
+  cursor: pointer;
+  &:hover { background: rgba(255,255,255,0.15); }
+`;
+
+const ChatListLoading = styled.div`
+  padding: 12px 16px;
+  font-size: 13px;
+  color: #94a3b8;
+  text-align: center;
+`;
 
 export const Sidebar: React.FC = () => {
   const { sidebarOpen, toggleSidebar } = useLayout();
+  const { currentChatId, setCurrentChatId } = useChatContext();
+  const { chats, loading, error, reload } = useChats();
+
+  const handleNewChat = () => {
+    setCurrentChatId(null);
+    reload();
+  };
 
   return (
     <SidebarWrapper $open={sidebarOpen}>
@@ -139,10 +172,26 @@ export const Sidebar: React.FC = () => {
           <LogoBlock>
             <LogoImage src={logo} alt="Алеф Трейд" />
           </LogoBlock>
-          <NewChatBtn>+ Новый чат</NewChatBtn>
+          <NewChatBtn onClick={handleNewChat}>+ Новый чат</NewChatBtn>
           <ChatList>
-            {dummyChats.map((title, i) => (
-              <ChatListItem key={i}>{title}</ChatListItem>
+            {loading && <ChatListLoading>Загрузка...</ChatListLoading>}
+            {error && (
+              <ChatListError title={error}>
+                Ошибка загрузки.
+                <RetryBtn type="button" onClick={reload}>Повторить</RetryBtn>
+              </ChatListError>
+            )}
+            {!loading && !error && chats.length === 0 && (
+              <ChatListEmpty>Нет чатов</ChatListEmpty>
+            )}
+            {!loading && !error && chats.length > 0 && chats.map((chat) => (
+              <ChatListItem
+                key={chat.id}
+                $active={currentChatId === chat.id}
+                onClick={() => setCurrentChatId(chat.id)}
+              >
+                {chat.title}
+              </ChatListItem>
             ))}
           </ChatList>
         </>

@@ -1,9 +1,11 @@
-import React from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import styled from 'styled-components';
 import { FiMenu } from 'react-icons/fi';
 import { AuthIcon } from './AuthIcon';
 import { AttachFileButton } from './AttachFileButton';
 import { useLayout } from './LayoutContext';
+import { useChatContext } from './ChatContext';
+import { streamChatMessage, DEFAULT_CHAT_ID } from './api/client';
 
 const Wrapper = styled.div`
   min-height: 100%;
@@ -142,16 +144,69 @@ const SendBtn = styled.button`
   }
 `;
 
-const mockMessages = [
-  { user: false, text: 'Здравствуйте! Чем я могу помочь Дмитрий Дударев?' },
-  { user: true, text: 'Какие свойства у товара с id ... ?' },
-  { user: false, text: 'Вот информация о товаре ...' },
-  { user: true, text: 'Багодарю!' },
-  { user: false, text: 'Как подключиться к удаленному столу?' },
-];
+export interface ChatMessage {
+  id: string;
+  user: boolean;
+  text: string;
+}
 
 export const ChatUI: React.FC = () => {
   const { sidebarOpen, openSidebar } = useLayout();
+  const { currentChatId } = useChatContext();
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [input, setInput] = useState('');
+  const [streaming, setStreaming] = useState(false);
+  const [sendError, setSendError] = useState<string | null>(null);
+
+  const scrollToBottom = useCallback(() => {
+    const el = document.getElementById('chat-body');
+    if (el) el.scrollTop = el.scrollHeight;
+  }, []);
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages, scrollToBottom]);
+
+  useEffect(() => {
+    setMessages([]);
+    setSendError(null);
+  }, [currentChatId]);
+
+  const handleSubmit = useCallback(
+    async (e: React.FormEvent) => {
+      e.preventDefault();
+      const text = input.trim();
+      if (!text || streaming) return;
+
+      const chatId = currentChatId ?? DEFAULT_CHAT_ID;
+
+      setInput('');
+      setSendError(null);
+      const userMsg: ChatMessage = { id: `u-${Date.now()}`, user: true, text };
+      setMessages((prev) => [...prev, userMsg]);
+      const assistantId = `a-${Date.now()}`;
+      setMessages((prev) => [...prev, { id: assistantId, user: false, text: '' }]);
+      setStreaming(true);
+
+      try {
+        let full = '';
+        for await (const chunk of streamChatMessage(chatId, text, { dialog_type: 'general', source_name: 'web' })) {
+          full += chunk;
+          setMessages((prev) =>
+            prev.map((m) => (m.id === assistantId ? { ...m, text: full } : m))
+          );
+        }
+      } catch (err) {
+        setSendError(err instanceof Error ? err.message : 'Ошибка отправки');
+        setMessages((prev) =>
+          prev.map((m) => (m.id === assistantId ? { ...m, text: '(Ошибка получения ответа)' } : m))
+        );
+      } finally {
+        setStreaming(false);
+      }
+    },
+    [input, streaming, currentChatId]
+  );
 
   return (
     <Wrapper>
@@ -165,15 +220,34 @@ export const ChatUI: React.FC = () => {
         )}
         <AuthIcon />
       </ChatHeader>
-      <ChatBody>
-        {mockMessages.map((msg, i) => (
-          <Bubble key={i} user={msg.user}>{msg.text}</Bubble>
+      <ChatBody id="chat-body">
+        {messages.length === 0 && !sendError && (
+          <Bubble user={false} style={{ alignSelf: 'center', color: '#64748b' }}>
+            Напишите сообщение или выберите чат слева.
+          </Bubble>
+        )}
+        {sendError && (
+          <Bubble user={false} style={{ borderColor: '#f87171', color: '#b91c1c' }}>
+            {sendError}
+          </Bubble>
+        )}
+        {messages.map((msg) => (
+          <Bubble key={msg.id} user={msg.user}>
+            {msg.text || (msg.user ? '' : '…')}
+          </Bubble>
         ))}
       </ChatBody>
-      <InputBar>
+      <InputBar onSubmit={handleSubmit}>
         <AttachFileButton />
-        <Input placeholder="Напишите вопрос..." disabled />
-        <SendBtn disabled>Отправить</SendBtn>
+        <Input
+          placeholder="Напишите вопрос..."
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          disabled={streaming}
+        />
+        <SendBtn type="submit" disabled={streaming || !input.trim()}>
+          Отправить
+        </SendBtn>
       </InputBar>
     </Wrapper>
   );
