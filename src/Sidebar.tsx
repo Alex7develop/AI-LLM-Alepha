@@ -69,6 +69,7 @@ const LogoBlock = styled.div`
   padding: 14px 12px 16px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06);
   background: rgba(0, 0, 0, 0.2);
+  overflow: visible;
 `;
 
 const LogoImage = styled.img`
@@ -76,6 +77,8 @@ const LogoImage = styled.img`
   width: auto;
   object-fit: contain;
   filter: brightness(1.05) contrast(1.05);
+  transform: scale(2.75);
+  transform-origin: center;
 `;
 
 const NewChatBtn = styled.button`
@@ -157,12 +160,16 @@ const ChatListLoading = styled.div`
 
 export const Sidebar: React.FC = () => {
   const { sidebarOpen, toggleSidebar } = useLayout();
-  const { currentChatId, setCurrentChatId } = useChatContext();
+  const { currentChatId, setCurrentChatId, createNewChat, creatingChat } = useChatContext();
   const { chats, loading, error, reload } = useChats();
 
-  const handleNewChat = () => {
-    setCurrentChatId(null);
-    reload();
+  const handleNewChat = async () => {
+    try {
+      await createNewChat();
+      reload();
+    } catch {
+      reload();
+    }
   };
 
   return (
@@ -172,7 +179,9 @@ export const Sidebar: React.FC = () => {
           <LogoBlock>
             <LogoImage src={logo} alt="Алеф Трейд" />
           </LogoBlock>
-          <NewChatBtn onClick={handleNewChat}>+ Новый чат</NewChatBtn>
+          <NewChatBtn onClick={handleNewChat} disabled={creatingChat}>
+            {creatingChat ? '…' : '+ Новый чат'}
+          </NewChatBtn>
           <ChatList>
             {loading && <ChatListLoading>Загрузка...</ChatListLoading>}
             {error && (

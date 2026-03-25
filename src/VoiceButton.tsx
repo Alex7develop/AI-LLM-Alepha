@@ -1,7 +1,7 @@
 import React from 'react';
 import styled from 'styled-components';
 
-const Button = styled.label`
+const Button = styled.button`
   display: flex;
   align-items: center;
   justify-content: center;
@@ -17,22 +17,19 @@ const Button = styled.label`
     background: #f1f5f9;
     opacity: 0.85;
   }
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
 `;
 const IconImg = styled.img`
   width: 20px;
   height: 20px;
   object-fit: contain;
 `;
-const HiddenInput = styled.input`
-  display: none;
-`;
 
-export const AttachFileButton: React.FC<{ onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void }> = ({
-  onChange,
-}) => (
-  <Button title="Прикрепить изображение">
-    <IconImg src="/img.png" alt="" />
-    <HiddenInput type="file" onChange={onChange} accept="image/*" />
+export const VoiceButton: React.FC<{ disabled?: boolean }> = ({ disabled }) => (
+  <Button type="button" title="Голосовой ввод" disabled={disabled}>
+    <IconImg src="/voice.png" alt="" />
   </Button>
 );
-

@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 import styled from 'styled-components';
 import { FiUser } from 'react-icons/fi';
+import { useAuthContext } from './AuthContext';
 
 const IconBtn = styled.button`
   background: transparent;
@@ -26,15 +27,141 @@ const IconWrap = styled.span`
   display: flex;
   transition: color 0.15s;
 `;
+const LetterBadge = styled.span`
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: #0f172a;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-transform: uppercase;
+`;
 
-export const AuthIcon: React.FC = () => (
-  <IconBtn
-    title="Войти через Alephtrade"
-    onClick={() => window.open('https://oauth.alephtrade.com/', '_blank')}
-  >
-    <IconWrap>
-      <FiUser size={18} />
-    </IconWrap>
-  </IconBtn>
-);
+const Wrapper = styled.div`
+  position: relative;
+  display: flex;
+  align-items: center;
+`;
+
+const DropdownOverlay = styled.div`
+  position: fixed;
+  inset: 0;
+  z-index: 999;
+`;
+const DropdownBox = styled.div`
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  background: #fff;
+  border-radius: 12px;
+  padding: 16px 20px;
+  min-width: 260px;
+  max-width: 320px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  z-index: 1000;
+`;
+const DropdownName = styled.div`
+  font-size: 15px;
+  font-weight: 600;
+  color: #0f172a;
+  margin-bottom: 16px;
+`;
+const DropdownRow = styled.div`
+  font-size: 13px;
+  color: #64748b;
+  margin-bottom: 6px;
+  &:last-of-type {
+    margin-bottom: 0;
+  }
+`;
+const DropdownValue = styled.span`
+  color: #334155;
+  margin-left: 6px;
+`;
+const DropdownDivider = styled.div`
+  height: 1px;
+  background: #e2e8f0;
+  margin: 12px 0;
+`;
+const LogoutBtn = styled.button`
+  width: 100%;
+  padding: 10px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #334155;
+  background: transparent;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  &:hover {
+    background: #f8fafc;
+    border-color: #cbd5e1;
+  }
+`;
+
+export const AuthIcon: React.FC = () => {
+  const { isAuthorized, userName, userData } = useAuthContext();
+  const [open, setOpen] = useState(false);
+  const firstLetter = userName?.trim().charAt(0) ?? null;
+
+  const handleClick = () => {
+    if (isAuthorized && firstLetter) {
+      setOpen((v) => !v);
+    } else {
+      const returnUrl = encodeURIComponent(window.location.origin + window.location.pathname);
+      window.location.href = `https://oauth.alephtrade.com/?redirect_uri=${returnUrl}`;
+    }
+  };
+
+  const handleLogout = () => {
+    setOpen(false);
+    // TODO: подключить метод выхода
+  };
+
+  const fullName = userData
+    ? [userData.second_name, userData.name, userData.patronymic].filter(Boolean).join(' ')
+    : '';
+
+  return (
+    <Wrapper>
+      <IconBtn
+        title={isAuthorized && userName ? userName : 'Войти через Alephtrade'}
+        onClick={handleClick}
+      >
+        {isAuthorized && firstLetter ? (
+          <LetterBadge>{firstLetter}</LetterBadge>
+        ) : (
+          <IconWrap>
+            <FiUser size={18} />
+          </IconWrap>
+        )}
+      </IconBtn>
+      {open && isAuthorized && (
+        <>
+          <DropdownOverlay onClick={() => setOpen(false)} />
+          <DropdownBox>
+            <DropdownName>{fullName || '—'}</DropdownName>
+            <DropdownRow>
+              Телефон
+              <DropdownValue>{userData?.phone || '—'}</DropdownValue>
+            </DropdownRow>
+            <DropdownRow>
+              Почта
+              <DropdownValue>{userData?.email || '—'}</DropdownValue>
+            </DropdownRow>
+            <DropdownDivider />
+            <LogoutBtn type="button" onClick={handleLogout}>
+              Выход
+            </LogoutBtn>
+          </DropdownBox>
+        </>
+      )}
+    </Wrapper>
+  );
+};
 
