@@ -47,3 +47,4 @@ export function clearTokenFromUrl(): void {
   url.searchParams.delete('token');
   window.history.replaceState({}, '', url.toString());
 }
+

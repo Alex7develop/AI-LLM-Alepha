@@ -5,11 +5,13 @@ const Button = styled.label`
   display: flex;
   align-items: center;
   justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
   background: transparent;
   border: none;
   outline: none;
   cursor: pointer;
-  border-radius: 8px;
+  border-radius: 10px;
   padding: 6px 8px;
   transition: background 0.15s, opacity 0.15s;
   flex-shrink: 0;

@@ -6,6 +6,22 @@ import { useChatContext } from './ChatContext';
 import { useChats } from './hooks/useChats';
 import logo from './assets/big_logo.png';
 
+const MobileBackdrop = styled.button`
+  display: none;
+  @media (max-width: 768px) {
+    display: block;
+    position: fixed;
+    inset: 0;
+    z-index: 140;
+    border: none;
+    padding: 0;
+    margin: 0;
+    background: rgba(15, 23, 42, 0.45);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+`;
+
 const SidebarWrapper = styled.aside<{ $open: boolean }>`
   position: relative;
   width: ${(p) => (p.$open ? '240px' : '40px')};
@@ -13,6 +29,8 @@ const SidebarWrapper = styled.aside<{ $open: boolean }>`
   background: #0f172a;
   color: #e2e8f0;
   height: 100vh;
+  height: 100dvh;
+  min-height: -webkit-fill-available;
   display: flex;
   flex-direction: column;
   border-right: 1px solid rgba(255, 255, 255, 0.06);
@@ -20,15 +38,16 @@ const SidebarWrapper = styled.aside<{ $open: boolean }>`
   transition: width 0.2s ease, min-width 0.2s ease;
   flex-shrink: 0;
   @media (max-width: 768px) {
-    position: absolute;
+    position: fixed;
     left: 0;
     top: 0;
     bottom: 0;
-    z-index: 100;
-    width: ${(p) => (p.$open ? '260px' : '0')};
+    z-index: 200;
+    width: ${(p) => (p.$open ? 'min(86vw, 280px)' : '0')};
     min-width: 0;
     overflow: hidden;
-    box-shadow: ${(p) => (p.$open ? '4px 0 12px rgba(0,0,0,0.15)' : 'none')};
+    box-shadow: ${(p) => (p.$open ? '4px 0 24px rgba(0,0,0,0.2)' : 'none')};
+    padding-top: env(safe-area-inset-top, 0px);
   }
 `;
 
@@ -79,11 +98,15 @@ const LogoImage = styled.img`
   filter: brightness(1.05) contrast(1.05);
   transform: scale(2.75);
   transform-origin: center;
+  @media (max-width: 768px) {
+    transform: scale(2);
+  }
 `;
 
 const NewChatBtn = styled.button`
   margin: 10px 8px;
-  padding: 8px 12px;
+  padding: 10px 12px;
+  min-height: 44px;
   border-radius: 8px;
   border: 1px solid rgba(255, 255, 255, 0.12);
   background: transparent;
@@ -110,9 +133,12 @@ const ChatList = styled.ul`
   overflow-y: auto;
 `;
 const ChatListItem = styled.li<{ $active?: boolean }>`
-  padding: 8px 12px;
+  padding: 12px 12px;
   margin: 0 6px;
-  font-size: 13px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  font-size: 14px;
   border-radius: 8px;
   cursor: pointer;
   transition: background 0.12s;
@@ -159,7 +185,7 @@ const ChatListLoading = styled.div`
 `;
 
 export const Sidebar: React.FC = () => {
-  const { sidebarOpen, toggleSidebar } = useLayout();
+  const { sidebarOpen, toggleSidebar, closeSidebar } = useLayout();
   const { currentChatId, setCurrentChatId, createNewChat, creatingChat } = useChatContext();
   const { chats, loading, error, reload } = useChats();
 
@@ -172,7 +198,18 @@ export const Sidebar: React.FC = () => {
     }
   };
 
+  const selectChat = (id: string) => {
+    setCurrentChatId(id);
+    if (typeof window !== 'undefined' && window.matchMedia('(max-width: 768px)').matches) {
+      closeSidebar();
+    }
+  };
+
   return (
+    <>
+      {sidebarOpen && (
+        <MobileBackdrop type="button" aria-label="Закрыть меню" onClick={closeSidebar} />
+      )}
     <SidebarWrapper $open={sidebarOpen}>
       {sidebarOpen && (
         <>
@@ -197,7 +234,7 @@ export const Sidebar: React.FC = () => {
               <ChatListItem
                 key={chat.id}
                 $active={currentChatId === chat.id}
-                onClick={() => setCurrentChatId(chat.id)}
+                onClick={() => selectChat(chat.id)}
               >
                 {chat.title}
               </ChatListItem>
@@ -212,6 +249,7 @@ export const Sidebar: React.FC = () => {
         {sidebarOpen ? <FiChevronLeft size={18} /> : <FiChevronRight size={18} />}
       </ToggleTab>
     </SidebarWrapper>
+    </>
   );
 };
 

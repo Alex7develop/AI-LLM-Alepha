@@ -9,10 +9,13 @@ const IconBtn = styled.button`
   outline: none;
   cursor: pointer;
   padding: 6px;
+  min-width: 44px;
+  min-height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 8px;
+  border-radius: 10px;
+  flex-shrink: 0;
   transition: background 0.15s;
   &:hover {
     background: #f1f5f9;
@@ -50,19 +53,23 @@ const Wrapper = styled.div`
 const DropdownOverlay = styled.div`
   position: fixed;
   inset: 0;
-  z-index: 999;
+  z-index: 400;
 `;
 const DropdownBox = styled.div`
   position: absolute;
   top: calc(100% + 8px);
   right: 0;
+  left: auto;
   background: #fff;
   border-radius: 12px;
   padding: 16px 20px;
-  min-width: 260px;
-  max-width: 320px;
+  min-width: min(260px, calc(100vw - 24px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px)));
+  max-width: min(320px, calc(100vw - 16px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px)));
+  box-sizing: border-box;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-  z-index: 1000;
+  z-index: 401;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 `;
 const DropdownName = styled.div`
   font-size: 15px;

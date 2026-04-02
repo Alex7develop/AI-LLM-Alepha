@@ -1,73 +1,126 @@
-# React + TypeScript + Vite
+# Алеф Трейд — AI
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Веб-приложение для общения с ИИ-ассистентом компании **Alephtrade**. Пользователь может вести несколько диалогов, отправлять текстовые сообщения, прикреплять изображения и использовать голосовой ввод. Ответы поступают в режиме реального времени через стриминг.
 
-Currently, two official plugins are available:
+---
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Стек технологий
 
-## React Compiler
+| Слой | Инструменты |
+|------|-------------|
+| Фреймворк | React 19 + TypeScript |
+| Сборка | Vite 7 |
+| Стили | styled-components |
+| Markdown | react-markdown + remark-gfm |
+| Иконки | react-icons |
+| Авторизация | OAuth (oauth.alephtrade.com) → Bearer-токен |
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+---
 
-## Expanding the ESLint configuration
+## Функциональность
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+- **Список диалогов** — боковая панель с историей чатов, поддержка создания новых.
+- **Стриминг ответов** — ответ ИИ отображается по мере получения чанков.
+- **Вложения** — отправка изображений вместе с сообщением.
+- **Голосовой ввод** — запись аудио через браузерный MediaRecorder и отправка на API.
+- **Авторизация** — токен извлекается из cookie, `localStorage` или параметра `?token=` после OAuth-редиректа.
+- **Адаптивный UI** — поддержка мобильных устройств (iOS safe-area, dvh, брейкпоинт 768 px).
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+---
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+## Быстрый старт
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+# 1. Перейти в папку фронтенда
+cd frontend
+
+# 2. Установить зависимости
+npm install
+
+# 3. Запустить сервер разработки (http://localhost:5173)
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+### Скрипты
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+| Команда | Описание |
+|---------|----------|
+| `npm run dev` | Дев-сервер с HMR на `localhost:5173` |
+| `npm run build` | Проверка типов + production-сборка в `dist/` |
+| `npm run preview` | Локальный предпросмотр собранного `dist/` |
+| `npm run lint` | ESLint по всему проекту |
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+---
+
+## Переменные окружения
+
+Создайте файл **`frontend/.env`** на основе `.env.example`:
+
+```env
+VITE_API_BASE=https://api.alephtrade.com
 ```
+
+> По умолчанию Vite dev-сервер проксирует запросы `/api/*` → `https://api.alephtrade.com` (см. `vite.config.ts`). При необходимости укажите другой адрес API в `VITE_API_BASE`.
+
+---
+
+## Структура проекта
+
+```
+frontend/
+├── public/               # Статические ресурсы (иконки, логотип)
+├── src/
+│   ├── api/
+│   │   └── client.ts     # HTTP-клиент, все запросы к API
+│   ├── hooks/
+│   │   ├── useChats.ts          # Загрузка списка чатов
+│   │   └── useVoiceRecording.ts # Запись аудио
+│   ├── utils/
+│   │   ├── authToken.ts         # Работа с токеном
+│   │   ├── chatUserId.ts        # Локальный userId
+│   │   ├── currentChatStorage.ts
+│   │   └── markdownLinks.ts     # Обработка ссылок в markdown
+│   ├── App.tsx           # Корень: провайдеры
+│   ├── Layout.tsx        # Каркас страницы
+│   ├── LayoutContext.tsx # Состояние сайдбара
+│   ├── Sidebar.tsx       # Панель диалогов
+│   ├── ChatUI.tsx        # Основной интерфейс чата
+│   ├── AuthContext.tsx   # Авторизация
+│   ├── ChatContext.tsx   # Текущий диалог
+│   ├── AuthIcon.tsx      # Иконка профиля / дропдаун
+│   ├── AttachFileButton.tsx
+│   └── VoiceButton.tsx
+├── index.html
+├── vite.config.ts
+├── tsconfig.app.json
+└── package.json
+```
+
+---
+
+## API
+
+Все запросы идут на `https://api.alephtrade.com`.
+
+| Метод | Путь | Описание |
+|-------|------|----------|
+| `GET` | `/ai/validate_token` | Проверка токена и данные пользователя |
+| `GET` | `/ai/chats/{userId}` | Список чатов пользователя |
+| `GET` | `/ai/chat/{dialogId}/history` | История сообщений диалога |
+| `POST` | `/ai/chat` | Создание нового чата |
+| `POST` | `/stream/ai/chat/{chatId}/message` | Отправка сообщения (стриминг) |
+| `POST` | `/stream/ai/chat/{chatId}/audio-stream` | Голосовое сообщение |
+
+Заголовок авторизации: `Authorization: Bearer <token>`.
+
+---
+
+## Авторизация
+
+При открытии страницы приложение ищет токен в следующем порядке:
+
+1. URL-параметр `?token=` (после редиректа с OAuth)
+2. Cookie `token`
+3. `localStorage` ключ `token`
+
+Если токен не найден — пользователю предлагается войти через **oauth.alephtrade.com**.

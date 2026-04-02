@@ -9,15 +9,20 @@ import { VoiceButton } from './VoiceButton';
 import { useLayout } from './LayoutContext';
 import { useAuthContext } from './AuthContext';
 import { useChatContext } from './ChatContext';
-import { streamChatMessage, fetchChatHistory } from './api/client';
+import { streamChatMessage, fetchChatHistory, postAudioStream } from './api/client';
+import { useVoiceRecording } from './hooks/useVoiceRecording';
+import { getLinkDisplayChildren, preprocessMarkdownLinks } from './utils/markdownLinks';
 
 const Wrapper = styled.div`
   min-height: 100%;
+  height: 100%;
   width: 100%;
+  max-width: 100%;
   background: #fff;
   display: flex;
   flex-direction: column;
   min-width: 0;
+  min-height: 0;
   box-shadow: -1px 0 0 0 #e2e8f0;
 `;
 
@@ -25,8 +30,12 @@ const ChatHeader = styled.div`
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 8px;
   padding: 0 12px 0 8px;
-  height: 44px;
+  padding-left: max(8px, env(safe-area-inset-left, 0px));
+  padding-right: max(12px, env(safe-area-inset-right, 0px));
+  padding-top: max(0px, env(safe-area-inset-top, 0px));
+  min-height: calc(48px + env(safe-area-inset-top, 0px));
   border-bottom: 1px solid #e2e8f0;
   background: #fff;
   flex-shrink: 0;
@@ -36,14 +45,17 @@ const MenuBtn = styled.button`
   display: none;
   align-items: center;
   justify-content: center;
-  width: 32px;
-  height: 32px;
+  min-width: 44px;
+  min-height: 44px;
+  width: 44px;
+  height: 44px;
   padding: 0;
   background: transparent;
   border: none;
-  border-radius: 8px;
+  border-radius: 10px;
   color: #64748b;
   cursor: pointer;
+  flex-shrink: 0;
   transition: background 0.15s, color 0.15s;
   &:hover {
     background: #f1f5f9;
@@ -56,15 +68,19 @@ const MenuBtn = styled.button`
 
 const ChatBody = styled.div`
   flex: 1;
+  overflow-x: hidden;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   padding: 16px 20px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
   display: flex;
   flex-direction: column;
   gap: 12px;
   background: #fafafa;
   min-height: 0;
-  @media (max-width: 600px) {
-    padding: 12px 14px;
+  @media (max-width: 768px) {
+    padding: 12px max(12px, env(safe-area-inset-left, 0px)) 12px max(12px, env(safe-area-inset-right, 0px));
   }
 `;
 
@@ -82,14 +98,18 @@ const Bubble = styled.div<{ user?: boolean }>`
   line-height: 1.45;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
   border: ${(p) => (p.user ? 'none' : '1px solid #e2e8f0')};
-  @media (max-width: 600px) {
-    max-width: 92%;
-    padding: 8px 12px;
-    font-size: 13px;
+  word-wrap: break-word;
+  overflow-wrap: anywhere;
+  @media (max-width: 768px) {
+    max-width: min(92%, calc(100vw - 24px - env(safe-area-inset-left, 0px) - env(safe-area-inset-right, 0px)));
+    padding: 10px 12px;
+    font-size: 15px;
   }
 `;
 
 const MarkdownContent = styled.div<{ $user?: boolean }>`
+  overflow-wrap: anywhere;
+  word-break: break-word;
   & p {
     margin: 0 0 0.75em 0;
     &:last-child {
@@ -156,10 +176,14 @@ const AttachedPreview = styled.div`
   align-items: center;
   gap: 8px;
   padding: 6px 10px;
+  margin: 10px 14px 0;
   background: #f8fafc;
   border-radius: 8px;
   font-size: 13px;
   color: #64748b;
+  @media (max-width: 768px) {
+    margin: 10px max(14px, env(safe-area-inset-left, 0px)) 0 max(14px, env(safe-area-inset-right, 0px));
+  }
 `;
 const AttachedPreviewImg = styled.img`
   width: 48px;
@@ -186,27 +210,53 @@ const InputBarWrapper = styled.div`
   background: #fff;
   border-top: 1px solid #e2e8f0;
   flex-shrink: 0;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 `;
 const InputBar = styled.form`
   display: flex;
-  padding: 10px 14px 14px;
-  gap: 8px;
+  flex-wrap: wrap;
   align-items: center;
-  @media (max-width: 600px) {
-    padding: 8px 10px 16px;
+  gap: 8px;
+  padding: 10px max(14px, env(safe-area-inset-left, 0px)) 12px max(14px, env(safe-area-inset-right, 0px));
+  @media (max-width: 768px) {
+    flex-wrap: nowrap;
+    padding: 10px max(12px, env(safe-area-inset-left, 0px)) 12px max(12px, env(safe-area-inset-right, 0px));
+    gap: 6px;
+  }
+`;
+const InputRow = styled.div`
+  display: flex;
+  flex: 1 1 160px;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  @media (max-width: 768px) {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+`;
+const ActionsRow = styled.div`
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  margin-left: auto;
+  @media (max-width: 768px) {
+    gap: 6px;
+    margin-left: 0;
   }
 `;
 const Input = styled.input`
   flex: 1;
+  min-width: 0;
   background: #f8fafc;
   padding: 10px 14px;
-  font-size: 14px;
+  font-size: 16px;
   border: 1px solid #e2e8f0;
   border-radius: 10px;
   outline: none;
   font-family: inherit;
-  min-width: 80px;
-  min-height: 40px;
+  min-height: 44px;
   color: #334155;
   transition: border-color 0.15s, box-shadow 0.15s;
   &::placeholder {
@@ -216,23 +266,28 @@ const Input = styled.input`
     border-color: #0f172a;
     box-shadow: 0 0 0 2px rgba(15, 23, 42, 0.06);
   }
-  @media (max-width: 600px) {
-    min-height: 36px;
-    font-size: 16px;
-  }
 `;
 const SendBtn = styled.button`
   background: #0f172a;
   color: #fff;
-  padding: 0 14px;
-  font-size: 13px;
-  height: 40px;
+  padding: 0 16px;
+  font-size: 14px;
+  min-height: 44px;
+  height: 44px;
   border-radius: 10px;
   border: none;
   cursor: pointer;
   font-weight: 500;
   transition: background 0.15s, transform 0.1s;
   flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  @media (max-width: 480px) {
+    padding: 0;
+    width: 44px;
+    min-width: 44px;
+  }
   &:hover {
     background: #1e293b;
   }
@@ -243,6 +298,29 @@ const SendBtn = styled.button`
     opacity: 0.6;
     cursor: not-allowed;
     transform: none;
+  }
+`;
+const SendBtnLabel = styled.span`
+  @media (max-width: 480px) {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+`;
+const SendBtnIcon = styled.img`
+  display: none;
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+  filter: invert(1);
+  @media (max-width: 480px) {
+    display: block;
   }
 `;
 
@@ -280,7 +358,9 @@ export const ChatUI: React.FC = () => {
   }, [attachedFile]);
   const [sendError, setSendError] = useState<string | null>(null);
   const [historyLoading, setHistoryLoading] = useState(false);
+  const [voiceBusy, setVoiceBusy] = useState(false);
   const skipNextHistoryLoadRef = useRef(false);
+  const { isRecording: voiceRecording, startRecording, stopRecording } = useVoiceRecording();
 
   const scrollToBottom = useCallback(() => {
     const el = document.getElementById('chat-body');
@@ -308,6 +388,70 @@ export const ChatUI: React.FC = () => {
       })
       .finally(() => setHistoryLoading(false));
   }, [currentChatId, userId]);
+
+  const handleVoiceClick = useCallback(async () => {
+    if (streaming || voiceBusy) return;
+    if (voiceRecording) {
+      setVoiceBusy(true);
+      try {
+        const blob = await stopRecording();
+        if (!blob || blob.size < 50) {
+          setVoiceBusy(false);
+          return;
+        }
+        const ext = blob.type.includes('mp4') ? 'm4a' : blob.type.includes('ogg') ? 'ogg' : 'webm';
+        const file = new File([blob], `voice.${ext}`, { type: blob.type || 'audio/webm' });
+
+        let dialogId = currentChatId;
+        const isNewDialog = !dialogId;
+        if (!dialogId) {
+          try {
+            dialogId = await createNewChat({ skipSetCurrent: true });
+          } catch (err) {
+            setSendError(err instanceof Error ? err.message : 'Не удалось создать чат');
+            setVoiceBusy(false);
+            return;
+          }
+        }
+
+        const transcribed = await postAudioStream(effectiveUserId, dialogId, file);
+        if (transcribed) {
+          setInput((prev) => (prev.trim() ? `${prev.trim()} ${transcribed}` : transcribed));
+        }
+
+        if (isNewDialog && dialogId) {
+          skipNextHistoryLoadRef.current = true;
+          setCurrentChatId(dialogId);
+        }
+
+        const history = await fetchChatHistory(dialogId, userId ?? undefined);
+        setMessages(history);
+        refreshChatList();
+      } catch (err) {
+        setSendError(err instanceof Error ? err.message : 'Ошибка голосового ввода');
+      } finally {
+        setVoiceBusy(false);
+      }
+      return;
+    }
+    try {
+      await startRecording();
+    } catch (err) {
+      setSendError(err instanceof Error ? err.message : 'Нет доступа к микрофону');
+    }
+  }, [
+    streaming,
+    voiceBusy,
+    voiceRecording,
+    stopRecording,
+    startRecording,
+    currentChatId,
+    effectiveUserId,
+    createNewChat,
+    setCurrentChatId,
+    userId,
+    refreshChatList,
+  ]);
 
   const handleAttachChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -433,12 +577,12 @@ export const ChatUI: React.FC = () => {
                       components={{
                         a: ({ href, children, ...props }) => (
                           <a href={href} target="_blank" rel="noopener noreferrer" {...props}>
-                            {children}
+                            {getLinkDisplayChildren(href, children)}
                           </a>
                         ),
                       }}
                     >
-                      {msg.text || '…'}
+                      {preprocessMarkdownLinks(msg.text || '…')}
                     </ReactMarkdown>
                   </MarkdownContent>
                 </>
@@ -449,7 +593,7 @@ export const ChatUI: React.FC = () => {
       </ChatBody>
       <InputBarWrapper>
         {attachedFile && (
-          <AttachedPreview style={{ margin: '10px 14px 0' }}>
+          <AttachedPreview>
             <AttachedPreviewImg src={attachedPreviewUrl || ''} alt="" />
             <span>{attachedFile.name}</span>
             <RemoveAttachBtn type="button" onClick={() => setAttachedFile(null)}>
@@ -458,17 +602,31 @@ export const ChatUI: React.FC = () => {
           </AttachedPreview>
         )}
         <InputBar onSubmit={handleSubmit}>
-          <AttachFileButton onChange={handleAttachChange} />
-          <Input
-            placeholder="Напишите вопрос..."
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            disabled={streaming}
-          />
-          <VoiceButton disabled={streaming} />
-          <SendBtn type="submit" disabled={streaming || (!input.trim() && !attachedFile)}>
-            Отправить
-          </SendBtn>
+          <InputRow>
+            <AttachFileButton onChange={handleAttachChange} />
+            <Input
+              placeholder="Напишите вопрос..."
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              disabled={streaming}
+            />
+          </InputRow>
+          <ActionsRow>
+            <VoiceButton
+              disabled={streaming}
+              busy={voiceBusy}
+              recording={voiceRecording}
+              onClick={handleVoiceClick}
+            />
+            <SendBtn
+              type="submit"
+              title="Отправить"
+              disabled={streaming || (!input.trim() && !attachedFile)}
+            >
+              <SendBtnLabel>Отправить</SendBtnLabel>
+              <SendBtnIcon src="/upp.png" alt="" aria-hidden />
+            </SendBtn>
+          </ActionsRow>
         </InputBar>
       </InputBarWrapper>
     </Wrapper>

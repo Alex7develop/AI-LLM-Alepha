@@ -78,14 +78,20 @@ export async function fetchChats(userId: string): Promise<Chat[]> {
   if (!Array.isArray(data)) {
     return [];
   }
-  return data.map((item) => ({
-    id: item.dialog_id,
-    title: item.topic?.trim() || 'Новый чат',
-    created_at: item.created_at,
-    updated_at: item.created_at,
-    create_source: item.create_source,
-    dialog_type: item.dialog_type,
-  }));
+  return data.map((item) => {
+    const topic =
+      item.dialog_type === 'ithelp'
+        ? 'Заявка в ИТ'
+        : item.topic?.trim() || 'Новый чат';
+    return {
+      id: item.dialog_id,
+      title: topic,
+      created_at: item.created_at,
+      updated_at: item.created_at,
+      create_source: item.create_source,
+      dialog_type: item.dialog_type,
+    };
+  });
 }
 
 /**
@@ -232,5 +238,58 @@ export async function* streamChatMessage(
     }
   } finally {
     reader.releaseLock();
+  }
+}
+
+/**
+ * Отправка аудио для распознавания (голосовой ввод).
+ * POST https://api.alephtrade.com/stream/ai/chat/{chatId}/audio-stream
+ * Form: dialog_type, dialog_id, file (аудио)
+ */
+export async function postAudioStream(
+  chatId: string,
+  dialogId: string,
+  audioFile: File
+): Promise<string> {
+  const form = new FormData();
+  form.append('dialog_type', 'general');
+  form.append('dialog_id', dialogId);
+  form.append('file', audioFile, audioFile.name);
+
+  const res = await fetch(`${API_BASE}/stream/ai/chat/${chatId}/audio-stream`, {
+    method: 'POST',
+    headers: getAuthHeadersOnly(),
+    body: form,
+    credentials: 'include',
+  });
+
+  if (!res.ok) {
+    throw new Error(`Ошибка голосового ввода: ${res.status}`);
+  }
+
+  const raw = await res.text();
+  if (!raw.trim()) return '';
+
+  try {
+    const j = JSON.parse(raw) as unknown;
+    if (typeof j === 'string') return j.trim();
+    if (Array.isArray(j)) {
+      const parts = j
+        .map((item) => {
+          if (item && typeof item === 'object' && 'text' in item) {
+            return String((item as { text?: string }).text ?? '').trim();
+          }
+          return '';
+        })
+        .filter(Boolean);
+      return parts.join(' ').trim();
+    }
+    if (j && typeof j === 'object') {
+      const o = j as { text?: string; transcription?: string; message?: string; output_text?: string };
+      return (o.text ?? o.transcription ?? o.message ?? o.output_text ?? '').trim();
+    }
+    return '';
+  } catch {
+    return raw.trim();
   }
 }
