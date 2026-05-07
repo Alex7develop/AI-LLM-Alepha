@@ -8,6 +8,16 @@ const WIKI_PAGE_TITLES: Record<string, string> = {
   'ea548bc5-8f7c-4238-86a5-e1369cec5519': 'Настройка почты на мобильных устройствах',
 };
 
+/** Человекочитаемые названия поддоменов alephtrade.com. */
+const SUBDOMAIN_LABELS: Record<string, string> = {
+  'disk.alephtrade.com':  'Файлообменник АлефТрейд',
+  'wiki.alephtrade.com':  'Документация AlephTrade',
+  'mail.alephtrade.com':  'Почта АлефТрейд',
+  'crm.alephtrade.com':   'CRM АлефТрейд',
+  'oauth.alephtrade.com': 'Вход АлефТрейд',
+  'alephtrade.com':       'Сайт АлефТрейд',
+};
+
 function extractUuid(href: string): string | null {
   const m = href.match(
     /([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})/i
@@ -15,18 +25,28 @@ function extractUuid(href: string): string | null {
   return m ? m[1].toLowerCase() : null;
 }
 
-/** Человекочитаемый текст ссылки для URL wiki AlephTrade. */
+/** Человекочитаемый текст ссылки для URL AlephTrade. */
 export function getWikiLinkLabel(url: string): string {
   try {
     const u = new URL(url);
     if (!u.hostname.includes('alephtrade.com')) {
       return '';
     }
+    // Конкретная страница wiki по UUID
     const uuid = extractUuid(u.pathname) || extractUuid(u.href);
     if (uuid && WIKI_PAGE_TITLES[uuid]) {
       return WIKI_PAGE_TITLES[uuid];
     }
-    return 'Документация AlephTrade';
+    // Точный поддомен из словаря
+    if (SUBDOMAIN_LABELS[u.hostname]) {
+      return SUBDOMAIN_LABELS[u.hostname];
+    }
+    // Любой другой поддомен wiki
+    if (u.hostname.startsWith('wiki.')) {
+      return 'Документация AlephTrade';
+    }
+    // Общий fallback для alephtrade.com
+    return u.hostname.replace(/^www\./, '');
   } catch {
     return '';
   }
